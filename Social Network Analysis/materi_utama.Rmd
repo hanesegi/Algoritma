@@ -1,0 +1,716 @@
+---
+title: "Social Network Analysis"
+author: "David Tahi Ulubalang"
+date: "17 Januari 2022"
+output:
+  html_document:
+    number_sections: true
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+    df_print: paged
+    theme: united
+    highlight: breezedark
+    css: assets/style.css
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+# clean up the environment
+rm(list = ls())
+
+# setup chunk options
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  fig.align = "center",
+  comment = "#>"
+)
+
+options(scipen = 9999)
+```
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+Materi ini diproduksi oleh tim dari Algoritma untuk *Social Network Analysis*. Materi berikut hanya ditujukan untuk kalangan terbatas, meliputi individu/personal yang menerima materi ini secara langsung dari lembaga pelatihan. Materi ini dilarang untuk direproduksi, didistribusikan, diterjemahkan, atau diadaptasikan dalam bentuk apapun di luar izin dari individu dan organisasi yang berkepentingan.
+
+**Algoritma** adalah pusat pendidikan Data Science di Jakarta. Kami mengadakan workshop dan program pelatihan untuk membantu para profesional dan pelajar untuk mendapatkan keahlian dalam berbagai bidang dalam ruang lingkup Data Science: data visualization, machine learning, data modeling, statistical inference, dan lain-lainnya.
+
+Sebelum masuk ke dalam materi dan menjalankan kode-kode di dalam materi ini, silakan anda melihat bagian **Library and Setup** untuk melihat dan memastikan semua persyaratan dasar untuk mengikuti materi ini sudah terpenuhi termasuk package-package yang diperlukan. Pada bagian **Tujuan Pembelajaran** anda dapat melihat secara umum apa saja yang akan dipelajari dalam modul materi ini. Kami harap materi ini akan bermanfaat bagi karir ataupun menambah keahlian peserta.
+
+
+# Preface {.tabset}
+
+## Pendahuluan
+
+Manusia merupakan makhlus sosial dimana interaksi sosial merupakan salah satu kebutuhan utamanya. Saat ini ada banyak cara untuk melakukan interaksi sosial diantaranya dengan memanfaatkan media sosial. Media sosial merupakan tools untuk mempermudah manusia dalam berinterkasi dan berbagai informasi.
+
+Melalui media sosial, manusia dapat berinterkasi dengan mudah dan cepat tanpa dibatasi dengan kondisi geografis, kita bisa berinteraksi dengan orang yang sangat jauh secara geografis dengan cepat. Interkasi yang terjadi melalui media sosial menghasilkan data yang bisa dianalisa untuk mengetahui interkasi yang terjadi antar pengguna. Salah satu bentuk analisa yang bisa digunakan adalah social network analysis. 
+
+Materi ini bertujuan memberikan pemahaman kepada peserta workshop terkait penggunaan konsep graph dalam menganalis interkasi yang terjadi di media sosial. Adapun setelah mempelajari materi ini peserta diharapkan dapat memahami kegunaan dan potensi social network analysis sesuai dengan proses bisnis yang ada di bidang industri yang dijalani oleh peserta.
+
+
+## Library dan Setup
+
+Untuk dapat mengikuti materi ini, peserta diharapkan sudah menginstall beberapa packages di bawah ini. Apabila package tersebut belum terinstall, silahkan jalankan chunk atau baris kode berikut. Apabila sudah ter-install, lewati chunk berikut dan muat package yang dibutuhkan dengan menjalankan chunk selanjutnya.
+
+```{r eval=FALSE}
+# install.packages(c("tidyverse","rtweet", "tidygraph","ggraph","igraph", "knir", "rmarkdown"))
+```
+
+
+```{r}
+library(tidyverse)
+library(rtweet)
+
+# graph
+library(tidygraph)
+library(ggraph)
+library(igraph)
+```
+
+
+## Tujuan Pembelajaran
+
+Tujuan utama dari workshop ini adalah untuk memberikan pengenalan yang komprehensif mengenai tools dan perangkat lunak yang digunakan untuk melakukan social network analysis, yakni sebuah open-source populer: R. Adapun materi ini akan mencakup:
+
+
+- **Dasar Bahasa Pemrograman R**      
+    - Introduction to R programming language.      
+    - Working with the RStudio environment.      
+    - Basic Control Statement in R.      
+    - Data manipulation and processing with R tidyverse.      
+
+- **Introduction to Social Network Analysis**     
+    - Graph theory: nodes and edges      
+    - Graph theory: Directed and undirected graph      
+    - Graph metrics: Centrality       
+
+- **CASE STUDY: Information Activity Network**     
+    - Data gathering using rtweet package (Twitter API)       
+    - Feature engineering         
+    - Build nodes, edges, and graph dataframe       
+    - Build communities and calculate metrics       
+    - Visualize network using tidygraph       
+
+
+# Perkenalan Tools
+
+Sebelum masuk ke dalam analisis data, kita perlu mengenal tools dan bahasa pemrograman yang akan digunakan. Adapun dalam workshop ini, bahasa pemrograman yang digunakan pada workshop ini yaitu R dengan bantuan tool yaitu RStudio.  
+
+R merupakan bahasa pemrograman di mana seperangkat instruksi akan diterjemahkan ke dalam bahasa komputer, sedangkan RStudio merupakan aplikasi tambahan yang dapat membantu pengguna R melakukan pekerjaannya. 
+
+```{r fig.width=5, echo=FALSE}
+knitr::include_graphics(path = "image/rstudio.png")
+```
+
+
+## Mengapa mempelajari R?
+
+1. **Dibangun oleh ahli statistik, untuk ahli statistik.**      
+
+R adalah bahasa pemrograman statistik yang dibuat oleh Ross Ihaka dan Robert Gentleman di Departemen Statistik, di University of Auckland (Selandia Baru). R dibuat untuk analisis data, dan dengan demikian, berbeda dari bahasa pemrograman tradisional. R bukan hanya bahasa pemrograman statistik, R juga environment yang lengkap untuk analis data dan perangkat lunak analisis data yang paling banyak digunakan saat ini.     
+
+2. **Memiliki banyak Library**     
+
+R menyediakan banyak packages tambahan yang menambahkan fungsionalitas out-of-the-box untuk berbagai kegunaan: uji statistik, analisis deret waktu, visualisasi yang indah, dan berbagai tugas machine learning seperti algoritme regresi, algoritme klasifikasi, dan algoritme clustering. Komunitas R terkenal karena kontribusinya yang aktif dalam hal packages.      
+
+3. **Sumber Terbuka**      
+
+Bagian dari alasan komunitasnya yang aktif dan berkembang pesat adalah sifat sumber terbuka (open-source) dari R. Pengguna dapat berkontribusi dalam pembuatan packages, banyak tools statistik dan template kustomisasi untuk visualisasi yang tidak ditemukan dalam aplikasi statistik lain. 
+
+4. **Digunakan oleh berbagai perusahaan perangkat lunak Terbesar di Dunia**      
+
+R digunakan oleh Google untuk menghitung Return on Investment (ROI) dari berbagai iklan, dan seringkali digunakan untuk mengestimasi _casual effect_; seperti estimasi dampak dari sebuah fitur dari suatu aplikasi terhadap jumlah _download_ dari aplikasi tersebut, ataupun peningkatan tingkat penjualan setelah mengeluarkan _AdWords_. Bahkan, Google merilis _package_ R yang dapat digunakan oleh pengguna R lain untuk melakukan analisis serupa (lihat [`CausalImpact`](https://opensource.googleblog.com/2014/09/causalimpact-new-open-source-package.html){target="_blank"}). Banyak pegawai di Google telah berkontribusi aktif terhadap komunitas pengguna R: mereka seringkali aktif dalam berbagai grup pengguna R; [membuat _interface_ untuk _Google Prediction_](https://code.google.com/archive/p/google-prediction-api-r-client/){target="_blank"}; [membuat _coding style_ versi Google untuk R](http://web.stanford.edu/class/cs109l/unrestricted/resources/google-style.html){target="_blank"}, dan telah berkontribusi berbagai _package_ untuk R.
+    
+   
+**Microsoft** juga termasuk sebagai salah satu diantara perusahaan besar yang sangat bergantung pada R. Pada awalnya, Microsoft menggunakan R dalam: _platform_ Azure--tepatnya sebagai _capacity planning_; sistem _matchmaking_ pada Xbox's TrueSkill; analisis _churn_ untuk berbagai produk; dan beberapa _internal services_ lain dalam [Microsoft's line of products](http://blog.revolutionanalytics.com/2015/06/r-at-microsoft.html){target="_blank"}. Langkah penting yang diambil oleh Microsoft dalam hal ini adalah akuisisi dari _Revolution Analytics_, yang terkenal atas berbagai produk perkembangan di R; yang sekarang lebih dikenal sebagai _Microsoft R Server_, _Microsoft R Open_, _Microsoft Data Science Virtual Machine_, dll.   
+    
+    
+5. **Ready for Big Data**     
+
+R dapat terintegrasi dengan tools lain dalam pengolahan big data, library seperti RHadoop, ParallelR, merupakan sebagian dari library yang mampu membantu data engineers untuk melakukan komputasi pararel di R. 
+
+
+## Navigating RStudio
+
+Pada awal materi kita telah membahas perbedaan utama antara R dan RStudio. RStudio memiliki beberapa panel yang tersedia, jika anda sedang membaca materi ini pada format file RMarkdown (.Rmd), anda sedang melihat panel source dari RStudio. Sekarang mari kita bahas beberapa panel yang terdapat pada RStudio : 
+
+
+![](image/panel.png)
+
+Terdapat 4 panel utama yang harus Anda pahami yaitu :    
+
+1. **Panel Source** : Panel ini merupakan fitur utama dari RStudio, panel ini menampilkan file yang sedang dibuka pada RStudio.        
+
+2. **Panel Console** : Panel ini menampilkan console asli dari R yang digunakan untuk berkomunikasi dengan R session. Terdapat beberapa tab lain seperti Terminal yang dapat digunakan untuk mengakses komputer Anda melalui Command Line Interface (CLI).     
+
+3. **Panel Environment / History** : Bagian ini menampilkan seluruh object R yang sudah dibuat selama session yang sama. Terdapat tab History yang berfungsi untuk melihat history dari kode yang sudah dijalankan sebelumnya.     
+
+4. **Panel Files/Plot/Packages/Help** :     
+
+  - Tab Files : Daftar dari berkas (file) yang berada dalam working directory.
+  - Tab Plot : Menampilkan visualisasi yang terbentuk
+  - Tab Packages : Berisi daftar packages yang sudah terinstall
+  - Tab Help : Menampilkan dokumentasi resmi dari setiap fungsi     
+  
+
+Materi ini dibuat menggunakan R markdown file (.Rmd) yang sudah terintegrasi dengan RStudio dan beberapa fitur sudah diatur dalam packages `rmarkdown`. R markdown dapat digunakan untuk membuat laporan dari analisa dengan standar yang tinggi. Jika Anda melihat lokasi original dari file ini maka Anda akan menemukan 3 file utama yaitu : file .Rmd, .html, dan .pdf. Adapun file HTML dan PDF dihasilkan dari R markdown dengan fungsi `knit` dari packages `rmarkdown.`
+
+Pada R markdown Anda dapat memasukkan narasi dari laporan yang dibuat serta kode program dari analisis Anda. Adapun tempat untuk memasukkan kode program pada R markdown disebut chunk. Terdapat 2 cara untuk membuat chunk yaitu :     
+
+1. menggunakan shortcut `ctrl` + `alt` + `i`     
+2. menggunakan tombol insert yang berada pada pojok kanan atas dari panel source kemudian pilih R     
+
+
+## Create Report with Rmarkdown
+
+Pada materi ini, kita akan menggunakan file Rmarkdown (.Rmd). Rmarkdown merupakan package/tools yang digunakan untuk membuat report dengan kualitas tinggi.Pada folder materi ini terdapat file dengan ekstensi `.html` yang merupakan hasil *knit* dari Rmarkdown.
+
+Untuk membuat file Rmarkdown, kita bisa klik menu file pada pojok kiri atas Rstudio, pilih `New File` dan pilih `R Markdown`. Window baru akan terbuka, anda dapat memilih output dari report yang diinginkan kemudian memasukkan nama serta judul dari report.
+
+```{r echo=FALSE}
+knitr::include_graphics("image/rmarkdown.png")
+```
+
+## Shortcut
+
+Terdapat beberapa *key shortcut* yang akan memudahkan anda dalam menggunaan R. Beberapa diantaranya yaitu:
+
+* `Alt + -`: assign/ membuat objek di R (<-)
+* `Ctrl + Shift+ M`: membuat simbol piping (%>%) 
+* `Ctrl + Enter`: Menjalankan satu baris kode
+* `Ctrl + Shift + Enter`: Menjalankan satu kode dalam chunk
+
+# Dasar Pemrograman di R
+
+## Import Data
+Data yang digunakan pada workshop ini merupakan data yang dikumpulkan dari twitter dengan hashtag `#COVID19`, periode pengumpulan data dari 7 juni 2020 hingga 9 Juni 2020, data tersebut tersimpan pada folder `data_input` dengan nama `tweets.csv`. untuk membaca file tersebut bisa menggunakan fungsi `read.csv()` kemudian masukkan path dari file tersebut. Data yang sudah di baca akan tersimpan pada objek `tweets`. 
+
+```{r}
+tweets <- read.csv("data_input/tweets.csv") 
+head(tweets, 10)
+```
+
+Fungsi `head()` digunakan untuk melihat beberapa (default 6) data pertama. dari hasil diatas bisa dilihat bahwa terdapat 90 kolom beberapa deskripsi dari kolom tersebut seperti berikut:     
+- `user_id` : id dari pengguna twitter     
+- `status_id` : id dari status yang dibuat      
+- `created_at` : waktu ketika status tersebut dibuat      
+- `screen_name` : nama pengguna twitter       
+- `is_retweet` : Jenis dari status tersebut apakah sebuah retweet atau bukan      
+
+untuk deskiripsi lengkap dari seluruh kolom dapat dilihat dari dokuentasi resmi [twitter developer](https://developer.twitter.com/en/docs/twitter-api/v1/data-dictionary/object-model/tweet)       
+
+## Data Type and Structure
+
+Kita sudah mempelajari bagaimana mengecek sample dari data, sekarang kita perlu mengetahui tipe data dari masing masing kolom yang ada. Kita bisa menggunakan fungsi `str()` untuk melihat struktur serta dimensi dari data. 
+
+```{r}
+str(tweets)
+```
+
+`tweets` merupakan sebuah 'data.frame' atau tabel dengan 35977 baris dan 90 kolom. Nama dari setiap kolom tertera disebelah kanan (user_id, status_id, dll). Teks `chr`, `num` menunjukkan tipe data dari masing - masing kolom. 
+
+### Data Type in R
+
+Terdapat 4 tipe data dasar yang sering digunakan di R yaitu : 
+
+```{r}
+# character
+a_char <- c("Algoritma", "Indonesia", "e-Commerce", "Jakarta")
+# numeric
+a_num <- c(-1, 1, 2, 3/4, 0.5)
+# integer
+an_int <- c(1L, 2L)
+# logical
+a_log <- c(TRUE, TRUE, FALSE)
+```
+
+Cara untuk mengetahui tipe data dari suatu objek, Anda dapat menggunakan fungsi `class()`
+```{r}
+class(a_char)
+```
+
+Lalu, apa yang akan terjadi jika dalam satu vector memiliki beberapa tipe data yang berbeda seperti chunk dibawah ini?
+
+```{r}
+mix <- c("Algoritma", 2021, TRUE)
+mix
+```
+
+Bila Anda perhatikan setiap nilai pada vector `mix` memiliki **petik dua**, artinya nilai tersebut merupakan sebuah objek dengan tipe character. Proses perubahan paksa dari suatu vector bisa disebut sebagai **implicit coercion**. Ilustrasi terjadinya implicit coercion dapat dilihat pada gambar di bawah ini:
+
+```{r echo = F}
+knitr::include_graphics("image/level_data.png")
+```
+
+
+Ilustrasi di atas menunjukkan hirarki dari dasar tipe data di R. Pada kasus objek `mix`, tipe data yang paling spesifik adalah logical (pada elemen TRUE) dan tipe data paling umum yaitu character (pada elemen "Algoritma"). Implicit coercion akan mengubah tipe data ke tipe data paling umum dari elemen-elemen yang ada. Vector mix diubah menjadi tipe character karena terdapat elemen "Algoritma" yang bertipe character. 
+
+```{r}
+class(mix)
+```
+
+**Knowledge Check**
+
+Tentukan tipe data dari vector-vector di bawah ini?    
+
+- c(TRUE, 1L, 1/2)     
+- c("1", 12, 33.3)     
+- c(1,2,3,4L)     
+
+
+
+## Exploratory Data Analysis
+
+Sebelum mebuat sebuah graph kita melakukan eksplorasi pada data yang ada. Kita bisa menghitung banyaknya data yang merupakan sebuah retweet atau bukan dengan menggunakan fungsi `count()`. 
+```{r}
+tweets %>% 
+  count(is_retweet)
+```
+dari hasil diatas bisa dilihat bahwa mayoritas data tweet yang ada merupakan sebuah retweet, oleh sebab itu mari kita lihat summary jadi jumlah retweet. 
+
+```{r}
+tweets %>% 
+  filter(is_retweet) %>% 
+  select(retweet_count) %>% 
+  summary()
+```
+
+Dari hasil diatas suatu tweet maksimal di retweet sebanyak 207549 kali, sedangkan apabila kita lihat secara nilai tengah (median) hanya 62.
+mari kita cari tau tweet apa yang memiliki jumlah retweet_count terbesar, dan apa isi dari tweet tersebut
+
+# Graph Theory
+
+Dalam dunia matematika graph merupakan hubungan antar entitas, terdapat 2 komponen yang menyusun sebuah graph yaitu nodes/vertices yang merepresentasikan sebuah entitas dan edge/link menggambarkan sebuah hubungan. Dalam ilmu matematika cabang ilmu yang mempelajari graph disebut Graph Theory. 
+
+```{r echo = F}
+knitr::include_graphics("image/node2.png")
+```
+
+
+Bila kita hubungkan konsep graph kedalam interaksi sosial yang terjadi di twitter maka setiap node mewakili seorang user, sedangkan edge mewakili hubungan / interkasi yang terjadi (retweet, mention, quote). 
+
+## Graph Directions
+
+Secara umum hubungan antar nodes bisa dibagi menjadi 2 yaitu berarah (directed) dan tak berarah (undirected)
+
+Graph berarah (directed graph) memiliki arah hubungan pada edge-nya hal ini ditandai dengan arah panah pada suatu graph. bila dilihat dari arah panahnya kita bisa membaginya menjadi 2 jenis yaitu in-degree dan out-degree. In-degree merepresentasikan jumlah edge yang menuju suatu node, sedangkan out-degree menunjukkan jumlah edge yang keluar dari suatu node. 
+
+Graph tak berarah (undirected graph) tidak menampilkan hubungan antar nodesnya, sehingga hubungan antar nodes dapat dilihat 2 arah. Undirected graph ditunjukkan dengan tidak adalanya panah pada suatu graph. 
+
+```{r echo=F}
+knitr::include_graphics("image/direction.png")
+```
+
+Dalam menentukan direction diperlukan pemahaman user kepada data yang digunakan, Sebagai contoh pada data twitter kita bisa melihat seseorang melakukan mention pada user lain ketika membuat sebuah tweet, interaksi tersebut dapat kita asumsikan sebagai directed graph karena kita tidak mengetahui respon dari pengguna yang di mention.
+
+dibawah ini merupakan sample data antara user dengan user yang di-mention
+```{r}
+tweets %>% 
+  select(screen_name, mentions_screen_name) %>% 
+  head()
+```
+## Centrality Analysis
+
+Centrality merupakan salah satu ukuran penting ketika melakukan analisa pada suatu graph. Melalui centrality kita dapat mengetahui "key player" atau node yang paling berpengaruh dari suatu graph. Ada berbagai macam cara untuk mengetahui "key player" dari sebuah graph, dimana tiap cara memiliki definisinya sendiri dalam menentukan node yang paling penting. 
+
+### Degree Centrality    
+
+*Degree centrality* merupakan ukuran pemusatan yang menghitung banyaknya edges yang terhubung ke suatu node. Degree centrality dapat memberitahu seberapa banyak hubungan langsung yang dimiliki setiap node sehingga ketika kita ingin mencari individu yang memiliki koneksi langsung terbanayak dengan orang lain (orang paling populer) kita bisa melihat metrics ini. 
+
+Metrics ini cukup sederhana dalam proses perhitungannya sebagai contoh graph dibawah ini terdiri dari 6 nodes. Informasi keterhubungan antar node dapat diubah kedalam sebuah matriks yang disebut matriks adjacent. Matriks adjacent merupakan matriks yang berukuran n x n dimana n merupakan banyaknya node, nilai 1 pada matrix merepresentasikan adanya hubungan langsung antar node sedangkan nilai 0 berarti tidak memiliki hubungan langsung.
+
+
+```{r echo=F}
+knitr::include_graphics("image/degree_ilustration.png")
+```
+
+Perhatikan node 1 pada graph diatas, node tersebut terhubung dengan node 2, 4, dan 6 secara langsung, sehingga nilai pada baris pertama kolom ke 2,4, dan 6 berisi 1 sedangkan yang lainnya adalah 0. setelah membuat matriks adjacent, kita bisa menjumlahkan semua nilai tersebut, semakin besar nilai total maka semakin "populer" node tersebut. 
+
+Untuk menormalisasi nilai degree, nilai total dapat dibagi dengan jumlah node dikurang satu (n-1) sehingga range dari degree centrality berkisar 0 hingga 1. Semakin mendekati 1 maka node tersebut semakin banyak terhubung dengan node lain secara langsung.
+
+
+### Closeness Centrality
+
+Berbeda dengan degree centrality yang mengukur seberapa "populer" suatu node, closeness centrality mengukur seberapa "dekat" suatu node dengan node lainnya. Closeness centrality dapat memberitahu kita node mana yang memiliki jarak terpendek keseluruh nodes. Ukuran ini dapat digunakan ketika kita ingin mencari tau individu yang paling efektif dalam persebaran informasi "broadcaster". 
+
+
+Dalam proses perhitungannya kita perlu mengubah graph dimiliki kedalam matriks jarak (distance matrix). Distanace matrix menunjukkan banyaknya step yang dibutuhkan dari satu node ke node lainnya. Sebagai contoh jarak terdekat dari node 2 ke node 5 adalah 3, berarti butuh 3 steps untuk sampai dari node 2 ke node 5 (2 -> 3 -> 6 -> 5 atau 2 -> 1 -> 6 -> 5). Perhitungan jarak  dilakukan kesemua kombinasi node yang ada kemudian dihitung total jaraknya. Semakin kecil total jarak berarti semakin dekat node tersebut dengan node lain. 
+
+agar range dari closeness centrality sama dengan yang lain (0 hingga 1) dan memiliki interpretasi yang sama (semakin mendekati 1 sekain baik) maka dapat dinormalisasikan dengan cara jumlah nodes dikurang 1 dibagi total distance (n-1)/total.
+
+```{r echo = F}
+# ilustrasi diperjelas lagi dengan bantuan direction
+knitr::include_graphics("image/closeness_ilustration.png")
+```
+
+### Betweenness Centrality
+
+Betweenness centrality mengukur seberapa sering suatu node dilewati pada jalur terpendek antar nodes. Nilai ini dapat memberitahu node mana yang bisa digunakan sebagai "jembatan" penghubung dalam suatu graph. Metrics ini bisa digunakan untuk mengetahui individu yang mempengaruhi "aliaran" informasi. 
+
+```{r echo = F}
+knitr::include_graphics("image/betweenes_ilustration.png")
+```
+ 
+Proses perhitungan metrics ini sedikit lebih kompleks bila dibandingan 2 metrics sebelumnya, oleh sebab itu mari kita pahami langkah demi langkahnya
+ 
+1. Buat kombinasi connection antar node. Karena graph ini bersifat undirected sehingga hubungan antar node 1 dan node 2 sama dengan B ke A. Warna merah pada tahap kedua (lihat gambar) menandakan kombinasi tersebut tidak digunakan dikarenakan duplikat. 
+ 
+2. Dari 6 buah node yang ada didapati 15 kemungkinan hubungan antar node (lihat tahap 3 pada gambar). Kombinasi hubungan tersebut dicari kemungkinan jalur terpendeknya. Sebagai contoh dari node 2 ke node 4 terdapat 2 jalur terdekat yaitu (2,3,4) dan (2,1,4). Jalur yang lebih panjang tidak akan diperhitungkan.
+
+3. Tiap node diberikan point apabila node tersebut dilalui
+
+4. Jumlahkan semua point untuk setiap node. Semakin besar total point yang didapat maka semakin sering node tersebut dilalui.  
+
+5. Lakukan scaling dengan membagi total betweeness dengan $((n-1)(n-2))/2$
+
+ 
+### Eigenvector Centrality
+
+Sama seperti degree centrality eigenvector centrality mengukur seberapa penting suatu node berdasarkan banyaknya edge yang ada, yang membedakannya adalah pada eigenvector centrality akan melihat konektivitas dari tetangga node itu juga. Sebagai contoh seseorang dengan 300 *relatively unpopular* followers akan memiliki nilai eigenvector centrality lebih rendah bila dibandingkan seseorang dengan 300 *very popular* followers (seperti elon mask). Penggunaan eigenvector centrality sama seperti degree centrality yaitu untuk mencari node paling "populer" hanya saja metrics ini melihat secara keseluruhan. 
+
+Untuk menghitung nilai eigenvector centrality kita bisa melakukan beberapa tahapan yaitu:
+- Membuat matrix adjacent
+- mencari eigen vector dari matrix tersebut
+- Menggunakan eigen vector tersebut sebagai nilai centralitynya
+
+## Graph in R
+
+Pada umumnya ketika melakukan analisa pada suatu graph struktur data yang digunakan merupakan sebuah matrix baik itu matrix adjensy, atau matrix jarak. Pengolahan data menggunakan format matrix menggunakan memori (RAM) yang sangat besar karena dimensi dari metrix tersebut berukuran n x n dimana n merupakan jumlah node. Selain itu untuk melakukan wrangling pada data matrix tidak semudah melakukannya apabila data berformat dataframe, oleh sebab itu struktur data yang digunakan pada analisa graph di R berformat `tbl_graph`. 
+
+`tbl_grah` merupakan struktur data yang terdiri dari 2 dataframe (nodes dan edge) beserta informasi informasi lainnya. Kelebihan dari menggunakan struktur data ini yaitu kita bisa menggunakan grammar dari tidyverse sebagai proses wrangling di graph.
+
+```{r}
+# data edges
+edges_sample <- data.frame(from = c("B", "A", "D", "B", "A", "A"),
+                           to = c("D", "B", "C", "C", "E","C"))
+
+head(edges_sample)
+# data nodes
+nodes_sample <- data.frame(name = unique(c(edges_sample$from, edges_sample$to)))
+
+```
+
+Terdapat 2 dataframe diatas yaitu `edges_sample` yang berisi hubungan antar nodes (from, to) dan `nodes_sample` yang berisi kumpulan nodes yang berada pada graph. Untuk membuat suatu graph kita bisa menggunakan fungsi `tbl_graph()` dari package `tidygraph`. Informasi nodes dan edges yang sudah dimiliki bisa dimasukkan kedalam fungsi, selain itu kita bisa mendefinisikan jenis arahnya (directed), gunakan FALSE bisa graph merupakan sebuah *undirected graph*. 
+
+```{r}
+# membuat graph dari 2 data frame
+gf_sample <- 
+  tbl_graph(nodes = nodes_sample, 
+          edges = edges_sample, 
+          directed = F)
+
+# cek class dari object gf_sample
+class(gf_sample)
+```
+
+
+Untuk memvisualisasikan data dalam sebuah plot sederhana bisa menggunakan fungsi `plot()`. Dari sini terlihat hubungan antar nodes yang ada pada data `nodes_sample` sebelumnya
+
+```{r}
+# visualisasi sederhana
+set.seed(100)
+plot(x = gf_sample)
+```
+
+Kelebihan dari penggunaan format data `tbl_graph` yaitu kita dapat menggunakan fungsi- fungsi yang ada pada tidyverse terutama konsep piping ` %>%` sehingga mempermudah dalam proses analisa. Sebelum menggunakan functions yang ada pada tidyverse kita harus memanggil function `activate()` terlebih dahulu. Kegunaan dari fungsi ini adalah untuk mengaktifkan data (nodes atau edges) yang akan digunakan. 
+
+```{r}
+gf_sample %>% 
+  activate(what = nodes) %>% 
+  mutate(id = row_number())
+```
+
+Code diatas mengaktifkan `nodes`, sehingga data tersebut dapat diolah dengan fungsi dari tidyverse. Pada contoh diatas dilakukan penambahan satu kolom yang bernama `id` yang berisi nomor baris dari nodes tersebut. 
+
+dengan menggunakan grammar dari tidyverse perhitungan nilai centrality pada suatu graph menjadi lebih mudah. perhitungan nilai centrality bisa dilakukan dengan mengaktivasi `nodes` kemudian menghitung centrality dari grapah tersebut dengan fungsi `centrality_<jenisnya>()` 
+
+```{r}
+gf_sample %>%
+  activate(nodes) %>%
+  mutate(
+    betweenness = centrality_betweenness(normalized = T),
+    eigen = centrality_eigen()
+  )
+```
+
+Hasil perhitungan kedua centrality diatas yaitu betweenness dan eigen menunjukkan node A merupakan penghubung yang baik dikarenakan memiliki nilai betweenness tertinggi, sedangkan nodes B dan C memiliki nilai eigen tertinggi sehingga bisa diartikan nodes tersebut cukup baik dalam menyebarkan informasi pada suatu network. 
+
+# Social Network Analysis
+
+Social Network Analysis (SNA) merupakan sebuah teknik analisa hubungan/interaksi yang terjadi antar manusia dengan memanfaatkan teori graf.Interaksi antar manusia pun jadi jauh lebih mudah dianalisa dengan adanya media sosial, hal ini dikarenakan data tersebut terekam dan tersimpan oleh pemegang aplikasi. Data yang tersimpan dapat dimanfaatikan untuk mencari tahu "key player" dalam persebaran informasi, selain itu kita juga bisa mengetahui cluster pengguna dari suatu topik yang dibahas.
+
+## [Optional] Cara mengambil data dari twitter
+
+Twitter merupakan salah satu media sosial yang dapat diambil datanya untuk digunakan dalam proses analisis. Data tersebut dapat diambil dengan menggunakan pacakge `rtweet` namun sebelum mengambil data dari twitter, pengguna harus memiliki akun twitter kemudian masuk (sign in) ke website [twitter developer](https://developer.twitter.com). Jika sudah lakukan beberapa tahapan dibawah ini untuk mendapatkan token dan key.       
+
+1. Klik menu *projects & Apps* kemudian pilih *Overview*.        
+2. Klik tombol *Create App* pada bagian **Standalone Apps**
+3. Masukkan nama app anda (contoh dss_sna) lalu klik *Next*.        
+4. setelah itu anda akan mendapatkan API key, API key secret, dan bearer token. copy informasi tersebut dan pindahkan pada suatu text file sementara lalu klik *App settings*.            
+5. untuk mendapatkan token dan secret token klik tab *Key and tokens*           
+6. Klik *Generate* pada *Access Token and Secret*. Pastikan anda mensalin informasi **Access Token** dan **Access Token Secret**          
+7. Klik Yes, *I saved them* jika sudah         
+
+Tahap mendapatkan akses ke twitter sudah selesai, sekarang kita sudah memiliki 4 informasi yang dibutuhkan untuk mengambil data dari twitter yaitu *API Key*, *API Key Secret*, *access Token*, dan *access token secret*. Keempat informasi tersebut bersifat sebagai username dan password ketika menarik data dari twitter sehingga informasi tersebut sangat rahasia. Untuk menjaga kerahasiaan informasi tersebut kita tidak boleh menyimpannya pada file .Rmd ini karena bisa saja informasi tersebut terkirim secara tidak sengaja. Informasi tersebut dapat disimpan pada sistem komputer sehingga kemungkinan informasi terambil lebih kecil.   
+
+Untuk meyimpan informasi Key dan token pada sistem bisa melakukan beberapa tahap dibawah ini:       
+1. Buat file yang bernama `.Renviron`.      
+2. Pindahkan informasi key dan token ke file tersebut. Pastikan format penulisannya sama dengan contoh dibawah.       
+```
+access_token="858961976621383680-e70HtU6eVfky0SqkxeWNgxxxxxxxxxx"
+access_token_secret="vvXjps6jia0VXI4PkO9txZrqq29FzLUuceJxxxxxxxxx"
+Api_key="heuWLQt4EGBdISWxxxxxxxxxx"
+api_key_secret="itxbcVBM8yybMWeGCY61MqwwK2JdDAJPGcfEp5QYxxxxxxxxxx"
+```
+3. Simpan file `.Renviron` pada folder yang sama dengan materi ini disimpan.          
+4. Restart RStudio anda dengan cara pilih menu Session, kemudian pilih restart R.      
+Selamat sekarang informasi key dan token anda sudah tersimpan dengan aman pada sistem. 
+
+
+Sekarang data twitter bisa diambil namun sebelum itu kita harus connection dengan twitter dengan menggunakan fungsi `create_token()` dari package `rtweet`. Untuk memanggil informasi key dan token yang sudah disimpan pada system bisa menggunakan fungsi `Sys.getenv()` kemudian  masukkan nama variabel yang ingin diambil. 
+
+```{r  eval=F}
+library(rtweet)
+my_token <- create_token(app = "davidAlgoritma",
+             consumer_key = Sys.getenv("api_key"),
+             consumer_secret = Sys.getenv("api_key_secret"),
+             access_token = Sys.getenv("access_token"),
+             access_secret = Sys.getenv("access_token_secret"))
+```
+
+Saat ini kita sudah bisa mengambil data dari twitter, ada banyak fungsi yang bisa digunakan untuk mengambil data dari twitter salah satunya yaitu `search_tweets()`. Terdapat beberapa parameter pada function tersebut untuk membantu pencarian tweet yang diinginkan seperti:        
+- `q` : keyword yang ingin anda cari di twitter.      
+- `n` : jumlah tweet yang ingin anda ambil.        
+- `include_rts` : apakah sebuah retweet akan diambil pada proses query.       
+- `retryonratelimit` : Apakah kita akan menunggu apabila limit dari penarikan data sudah tercapai?       
+untuk detail penjelasan dari setiap paramter bisa dilihat pada dokumentasi yang tersedia di menu help         
+
+```{r eval=FALSE}
+national_tweet <- search_tweets(q = "#NationalChampionship",n = 100,include_rts = T,retryonratelimit = T)
+```
+
+Setelah tweet didapatkan pastikan anda menyimpan data tersebut dalam format `.csv` agar tidak perlu menarik data secara berulang kali. 
+
+```{r eval=F}
+write_as_csv(national_tweet, "national.csv")
+```
+
+## Data Cleansing
+
+Pada social network analysis setiap node direpresentasikan dengan user_name sedangkan edge bisa direpresentasikan dengan hubungan yang ada *mention*, *retweet*, maupun *quote*. Pada proses analisis kali ini kita akan melihat keterhubungan antar user berdasarkan mention yang ada pada tweet. 
+
+Tujuan dari proses cleansing ini untuk membuat raw data yang ada siap digunakan dalam proses pembuatan graph. Tahapan awal dari proses cleansing yaitu mengambil kolom `screen_name`, dan `mentions_screen_name` menggunakan `select()`, kedua kolom tersebut yang akan merepresentasikan nodes yang ada (from dan to pada data graph).  
+
+```{r}
+ tweets %>% 
+  select(screen_name,mentions_screen_name) 
+```
+
+`screen_name` menunjukkan nama pengguna twitter yang memiliki sebuat tweet, sedangkan `mentions_screen_name` merupakan pengguna yang di mention pada tweet-nya. Bila dilihat kolom `mentions_screen_name` masih memiliki beberapa nama dalam satu baris, hal tersebut harus di normalisasi agar satu baris hanya terdiri dari satu pasang saja. 
+
+namun seebelum itu kita perlu menghapus string "c()" yang ada kolom `mentions_screen_name`. Proses penghapusan string dengan pattern tertentu dapat dilakukan dengan fungsi `str_remove_all()` kemudian masukkan pattern yang ingin di remove. Jika anda tertarik untuk mempelajari pattern pada suatu text silahkan kunjungi link berikut [regex in r](https://tiaradwptr.shinyapps.io/regex-in-r/).
+
+```{r}
+ tweets %>% 
+  select(screen_name,mentions_screen_name) %>% 
+  mutate(mentions_screen_name =str_remove_all(string = mentions_screen_name, 
+                                               pattern = "^c\\(|\\)$"))
+```
+
+Sekarang kita sudah memisahkan data yang memiliki beberapa nilai pada kolom `mentions_screen_name` menjadi beberapa baris dengan fungsi `separate_rows()`. 
+
+```{r}
+ tweets %>% 
+  select(screen_name,mentions_screen_name) %>% 
+  mutate(mentions_screen_name =str_replace_all(string = mentions_screen_name, 
+                                               pattern =  "^c\\(|\\)$", 
+                                               replacement = "")) %>% 
+  separate_rows(mentions_screen_name,sep = ",")
+```
+
+Tahap terkahir yaitu kita bisa membuang semua data yang mengandung `NA` dengan fungsi `na.omit()` serta membuang tanda petik (") yang tertinggal pada kolom `mentions_screen_name`. sebagai tambahan kita bisa mengubah nama kolom `screen_name` menjadi `from` dan `mentions_screen_name` dengan `to`.
+```{r}
+edge_df <-
+ tweets %>% 
+  select(screen_name,mentions_screen_name) %>% 
+  mutate(mentions_screen_name =str_replace_all(string = mentions_screen_name, 
+                                               pattern =  "^c\\(|\\)$", 
+                                               replacement = "")) %>% 
+  separate_rows(mentions_screen_name,sep = ",") %>% # memisahkan data menjadi beberapa baris berdasarkan koma (,)
+  na.omit() %>%  # menghapus NA pada data
+  mutate(mentions_screen_name =str_replace_all(string = mentions_screen_name, # menghapus tanda baca pada kolom
+                                               pattern =  "[[:punct:] ]+", 
+                                               replacement = "")) %>% 
+  rename(from = screen_name, # mengubah nama kolom
+         to = mentions_screen_name)
+head(edge_df)
+```
+setelah melakukan data cleansing untuk membuat data edges, satu lagi data yang dibutuhkan yaitu data nodes. Data nodes bisa didapatkan dari semua user name yang ada pada data edges.
+
+```{r}
+# create nodes dataframe by unique value in both edges column
+nodes_df <- data.frame(name = unique(c(edge_df$from,edge_df$to)),
+                        stringsAsFactors = F)
+
+tail(nodes_df)
+```
+setelah mendapatkan semua data, sekarang graph bisa dibentuk dengan menggunakan fungsi `tbl_graph()`. Pada parameter directed kita menggunakan FALSE yang berarti graph ini merupakan undirected graph, dengan membuatnya menjadi *undirected* hubungan antar node dapat dilihat dari 2 arah. 
+
+Anda juga dapat membuatnya menjadi *directed* bila asumsi yang digunakan adalah hubungan antar node belum tentu dua arah.
+
+```{r}
+graph_tweets <- tbl_graph(nodes = nodes_df, 
+                          edges = edge_df,
+                          directed = F)
+```
+
+## Centrality Mesurements
+
+Setelah membuat graph kita bisa menghitung nilai centrality untuk tiap node. Ukuran centrality yang digunakan disini ada 4 yaitu degree, betweenness, closeness dan eigen.
+
+```{r}
+graph_tweets <- graph_tweets %>% 
+  activate(nodes) %>%
+  mutate(degree = centrality_degree(), # Calculate degree centrality
+         between = centrality_betweenness(normalized = T), # Calculate betweeness centrality
+         closeness = centrality_closeness(), # Calculate closeness centrality
+         eigen = centrality_eigen()
+         )  # Calculate eigen centrality
+```
+
+Untuk melihat hasil dari perhitungan centrality diatas, data nodes dapat diambil dalam bentuk dataframe agar lebih mudah dianalisa lebih lanjut.
+```{r}
+network_act_df <- graph_tweets %>% 
+  activate(nodes) %>% 
+  as.data.frame()
+
+head(network_act_df)
+```
+Dari data diatas bisa dilihat tiap node memiliki nilai centrality yang berbeda beda, untuk mengetahui user name yang memiliki nilai tertinggi untuk masing masing ukuran centrality kita dapat mengubahnya menjadi format dibawah.
+
+```{r}
+kp_activity <- data.frame(
+  network_act_df %>% arrange(-degree) %>% select(name) %>% slice(1:6),
+  network_act_df %>% arrange(-between) %>% select(name) %>% slice(1:6),
+  network_act_df %>% arrange(-closeness) %>% select(name) %>% slice(1:6),
+  network_act_df %>% arrange(-eigen) %>% select(name) %>% slice(1:6)
+) %>% setNames(c("degree","betweenness","closeness","eigen"))
+kp_activity
+```
+Dari data diatas kita bisa melihat bahwa akun *DrRobDavidson* merupakan akun dengan nilai eigen dan degree tertinggi yang berarti akun tersebut yang paling "populer" baik secara local maupun global network. *DrRobDavidson* merupakan seorang *executive director of Committee to Protect Medicare*. 
+
+```{r}
+tweets %>% 
+  filter(mentions_screen_name == "DrRobDavidson") %>% 
+  arrange(desc(mentions_screen_name)) %>% 
+  distinct(text) %>% 
+  pull(text)
+```
+
+kita juga bisa melihat tweet dari WHO (World Health Organization) yang sering mengupdate perkembangan covid selama 2019.
+
+```{r}
+tweets %>% 
+  filter(mentions_screen_name == "WHO") %>% 
+  arrange(desc(mentions_screen_name)) %>% 
+  distinct(text) %>% 
+  pull(text) %>% 
+  head()
+```
+
+## Graph Visualization
+
+Dari hasil pembuatan graph dan perhitungan nilai centrality kita dapat memvisualisasikan graph tersebut. Untuk mempermudah interpretasi dari plot nantinya kita perlu mengelompokkan nodes kedalam beberapa cluster. Oleh sebab itu kita akan melakukan proses clustering pada graph terlebih dahulu. 
+
+Metode clustering yang digunakan pada graph ini adalah metode Louvain, dimana metode ini melihat kerapatan (density) dari network yang ada. Untuk eksplorasi lebih lanjut terkait metode ini bisa kunjungi [atikel berikut](https://www.nature.com/articles/s41598-019-41695-z)
+
+```{r}
+set.seed(123)
+graph_tweets <- graph_tweets %>% 
+  activate(nodes) %>% 
+  mutate(community = group_louvain()) %>% 
+  activate(edges) %>% 
+  filter(!edge_is_loop())  # Remove loop edges
+```
+
+Fungsi` group_louvain()` bertujuan membuat cluster dengan metode louvain serta melakukan pelabelan secara langsung untuk tiap nodes. Bila dilihat dari rangkuman cluster yang terbentuk terdapat 3794 yang terbentuk, namun kita hanya akan fokus pada 5 cluster pertama saja karena cluster tersebut merupakan cluster terbesar. 
+
+```{r}
+graph_tweets %>% 
+  activate(nodes) %>% 
+  as.data.frame() %>% 
+  count(community)
+```
+
+
+```{r}
+# fungsi untuk mendapatkan orang orang penting di tiap cluster
+important_user <- function(data) {
+  name_person <- data %>%
+  as.data.frame() %>% 
+  filter(community %in% 1:5) %>% 
+  select(-community) %>% 
+  pivot_longer(-name, names_to = "measures", values_to = "values") %>% 
+  group_by(measures) %>% 
+  arrange(desc(values)) %>% 
+  slice(1:6) %>% 
+  ungroup() %>% 
+  distinct(name) %>% 
+  pull(name)
+  
+  return(name_person)
+}
+
+```
+
+
+Agar visualisasi yang ditampilkan tidak berantakan, maka label user_name yang ditampilkan hanyalah akun akun dengan nilai centrality tertinggi di tiap tiap clusternya. 
+
+```{r}
+important_person <- 
+graph_tweets %>% 
+  activate(nodes) %>% 
+  important_user()
+```
+
+
+
+```{r fig.width=12}
+set.seed(13)
+graph_tweets %>%
+  activate(nodes) %>%
+  mutate(ids = row_number(),
+         community = as.character(community)) %>%
+  filter(community %in% 1:5) %>% 
+  arrange(community,ids) %>%
+  mutate(node_label = ifelse(name %in% important_person, name,NA)) %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(alpha = 0.3 ) +
+  geom_node_point(aes(size = degree, fill = community), shape = 21, alpha = 0.7, color = "grey30") +
+  geom_node_label(aes(label = node_label), repel = T, alpha = 0.8 ) +
+  guides(size = "none") +
+  labs(title = "Top 5 Community of #COVID19", 
+       color = "Interaction",
+       fill = "Community") +
+  theme_void() +
+  theme(legend.position = "top")
+```
+Dari visualisasi graph diatas kita bisa melihat 5 terdapat cluster. Masing masing cluster memiliki beberapa akun penting berdasarkan nilai centralitynya, semakin besar ukuran node menandakan semakin "populer" node tersebut (*eigen centrality* yang tinggi). Visualisasi diatas juga menunjukkan kerapatan yang berbeda dari masing masing cluster, semakin rapat suatu cluster maka persebaran informasi semakin efisien. 
+
+
+# Reference
+
+- [Graph Clustering](https://www.nature.com/articles/s41598-019-41695-z)       
+- [centrality measures explained](https://cambridge-intelligence.com/keylines-faqs-social-network-analysis/)          
+- [Graph Centrality Measurement](https://www.sciencedirect.com/topics/computer-science/centrality-measure)           
+- [Intro to tidygraph](https://www.data-imaginist.com/2017/introducing-tidygraph/)        
+- [Intro to ggraph](https://www.data-imaginist.com/2017/ggraph-introduction-layouts/)       
